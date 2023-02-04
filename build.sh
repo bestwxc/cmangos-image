@@ -54,8 +54,9 @@ echo "version: $version"
 
 image_name=$image_name_prefix/$target-$type:$version
 
-sudo docker build . --target=$target -t $image_name
+sudo docker build . --target=$target -t $image_name --build-arg WOW_VER=$type
 
+# uncomment this line if you want push image to the reps.
 # sudo docker push $image_name
 
 

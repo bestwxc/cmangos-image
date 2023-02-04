@@ -1,6 +1,7 @@
 ARG WOW_VER=tbc
+ARG BASE_IMAGE_VER=1.0.1
 ### builder
-FROM wxc252/base4cmangos:1.0.0-without-maps as builder
+FROM wxc252/base4cmangos:$BASE_IMAGE_VER-without-maps as builder
 
 ARG APT_MIRROR=mirrors.ustc.edu.cn
 ARG DOCKER_USER=cmangos
@@ -19,26 +20,28 @@ RUN /bin/sh -c set -eux \
   && rm -rf /etc/apt/sources.list \
   && mv /etc/apt/sources.list.bak /etc/apt/sources.list
 
-WORKDIR ~
-
 ENV GIT_SSL_NO_VERIFY=1
 
 ARG WOW_VER=tbc
 
+# clone the core
 RUN cd ~ && mkdir cmangos && cd ~/cmangos \
   && git clone https://github.com/cmangos/mangos-$WOW_VER.git mangos
-
+# clone the db
 RUN cd ~/cmangos \
   && git clone https://github.com/cmangos/$WOW_VER-db.git
-
+# build
 RUN cd ~/cmangos \
   && rm -rf build \
   && mkdir build \
   && cd build \
-  && cmake ../mangos -DCMAKE_INSTALL_PREFIX=/home/$DOCKER_USER/cmangos-server -DBUILD_AHBOT=ON -DBUILD_METRICS=ON -DPCH=1 -DDEBUG=0 -DBUILD_PLAYERBOT=ON \
+  && cmake ../mangos -DCMAKE_INSTALL_PREFIX=/home/$DOCKER_USER/cmangos-server \
+      -DBUILD_AHBOT=ON -DBUILD_METRICS=ON -DPCH=1 -DDEBUG=0 \
+      -DBUILD_PLAYERBOT=ON \
+      -DBUILD_GIT_ID=ON \
   && make -j $(nproc) \
   && make install
-
+# pare the etc files
 RUN cd /home/$DOCKER_USER/cmangos-server/etc \
   && rm -rf *.conf \
   && cp ahbot.conf.dist ahbot.conf \
@@ -48,7 +51,7 @@ RUN cd /home/$DOCKER_USER/cmangos-server/etc \
   && cp realmd.conf.dist realmd.conf
 
 ### db
-FROM wxc252/base4cmangos:1.0.0-without-maps as cmangos-db
+FROM wxc252/base4cmangos:$BASE_IMAGE_VER-without-maps as cmangos-db
 
 ARG APT_MIRROR=mirrors.ustc.edu.cn
 RUN /bin/sh -c set -eux \
@@ -57,20 +60,21 @@ RUN /bin/sh -c set -eux \
   && sed -i s@/security.ubuntu.com/@/$APT_MIRROR/@g /etc/apt/sources.list \
   && apt update \
   && apt upgrade \
-  && apt-get install -y --no-install-recommends mysql-client \
+  && apt-get install -y --no-install-recommends mysql-client vim vim telnet net-tools bind9-utils zip unzip \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /etc/apt/sources.list \
   && mv /etc/apt/sources.list.bak /etc/apt/sources.list
 
 ARG WOW_VER=tbc
 ARG DOCKER_USER=cmangos
-ARG USER_ID=1000
-ARG GROUP_ID=1000
+ARG USER_ID=2000
+ARG GROUP_ID=2000
 
 COPY --from=builder /root/cmangos/$WOW_VER-db /home/$DOCKER_USER/cmangos/$WOW_VER-db
+COPY --from=builder /root/cmangos/mangos /home/$DOCKER_USER/cmangos/mangos
 
 ### realm
-FROM wxc252/base4cmangos:1.0.0-without-maps as cmangos-without-maps
+FROM wxc252/base4cmangos:$BASE_IMAGE_VER-without-maps as cmangos-without-maps
 
 ARG APT_MIRROR=mirrors.ustc.edu.cn
 
@@ -86,18 +90,18 @@ RUN /bin/sh -c set -eux \
   && mv /etc/apt/sources.list.bak /etc/apt/sources.list
 
 ARG DOCKER_USER=cmangos
-ARG USER_ID=1000
-ARG GROUP_ID=1000
+ARG USER_ID=2000
+ARG GROUP_ID=2000
 
 COPY --from=builder --chown=$USER_ID:$GROUP_ID /home/$DOCKER_USER/cmangos-server /home/$DOCKER_USER/cmangos-server
 USER $DOCKER_USER
 #realmd
 EXPOSE 3724/tcp
-WORKDIR ~
-ENTRYPOINT ["~/cmangos-server/bin/realmd"]
+WORKDIR /home/$DOCKER_USER
+ENTRYPOINT ["cmangos-server/bin/realmd"]
 
 ### mangos
-FROM wxc252/base4cmangos:1.0.0-with-$WOW_VER-maps as cmangos-with-maps
+FROM wxc252/base4cmangos:$BASE_IMAGE_VER-with-$WOW_VER-maps as cmangos-with-maps
 
 ARG APT_MIRROR=mirrors.ustc.edu.cn
 
@@ -114,8 +118,8 @@ RUN /bin/sh -c set -eux \
 
 
 ARG DOCKER_USER=cmangos
-ARG USER_ID=1000
-ARG GROUP_ID=1000
+ARG USER_ID=2000
+ARG GROUP_ID=2000
 
 COPY --from=builder --chown=$USER_ID:$GROUP_ID /home/$DOCKER_USER/cmangos-server /home/$DOCKER_USER/cmangos-server
 USER $DOCKER_USER
@@ -128,5 +132,5 @@ EXPOSE 7878/tcp
 #metrics
 EXPOSE 8086/tcp
 
-WORKDIR ~
-ENTRYPOINT ["~/cmangos-server/bin/mangosd"]
+WORKDIR /home/$DOCKER_USER
+ENTRYPOINT ["cmangos-server/bin/mangosd"]
