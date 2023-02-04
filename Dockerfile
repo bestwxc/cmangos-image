@@ -24,9 +24,14 @@ WORKDIR ~
 ENV GIT_SSL_NO_VERIFY=1
 
 ARG WOW_VER=tbc
+
 RUN cd ~ && mkdir cmangos && cd ~/cmangos \
-  && git clone https://github.com/cmangos/mangos-$WOW_VER.git mangos \
-  && git clone https://github.com/cmangos/$WOW_VER-db.git \
+  && git clone https://github.com/cmangos/mangos-$WOW_VER.git mangos
+
+RUN cd ~/cmangos \
+  && git clone https://github.com/cmangos/$WOW_VER-db.git
+
+RUN cd ~/cmangos \
   && rm -rf build \
   && mkdir build \
   && cd build \
