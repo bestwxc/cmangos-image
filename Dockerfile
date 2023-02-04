@@ -13,7 +13,7 @@ RUN /bin/sh -c set -eux \
   && apt update \
   && apt upgrade \
   && apt-get install -y --no-install-recommends iputils-ping telnet net-tools curl wget tcpdump \
-  && apt install -y --no-install-recommends  build-essential gcc g++ automake git-core autoconf make patch libmysql++-dev mysql-server libtool libssl-dev grep binutils zlib1g-dev libbz2-dev cmake libboost-all-dev \
+  && apt install -y --no-install-recommends  build-essential gcc g++ automake git-core autoconf make patch libmysql++-dev mysql-client libtool libssl-dev grep binutils zlib1g-dev libbz2-dev cmake libboost-all-dev \
   && apt install -y --no-install-recommends gcc-12 g++-12 \
   && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 12 --slave /usr/bin/g++ g++ /usr/bin/g++-12 \
   && rm -rf /var/lib/apt/lists/* \
@@ -26,10 +26,10 @@ ARG WOW_VER=tbc
 
 # clone the core
 RUN cd ~ && mkdir cmangos && cd ~/cmangos \
-  && git clone https://github.com/cmangos/mangos-$WOW_VER.git mangos
+  && git clone https://github.com/cmangos/mangos-$WOW_VER.git mangos --depth=1
 # clone the db
 RUN cd ~/cmangos \
-  && git clone https://github.com/cmangos/$WOW_VER-db.git
+  && git clone https://github.com/cmangos/$WOW_VER-db.git --depth=1
 # build
 RUN cd ~/cmangos \
   && rm -rf build \
@@ -49,6 +49,10 @@ RUN cd /home/$DOCKER_USER/cmangos-server/etc \
   && cp mangosd.conf.dist mangosd.conf \
   && cp playerbot.conf.dist playerbot.conf \
   && cp realmd.conf.dist realmd.conf
+
+RUN cd ~/cmangos/mangos && rm -rf .git
+RUN cd ~/cmangos/$WOW_VER-db && rm -rf .git
+
 
 ### db
 FROM wxc252/base4cmangos:$BASE_IMAGE_VER-without-maps as cmangos-db
