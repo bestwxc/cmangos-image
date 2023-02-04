@@ -42,3 +42,22 @@ sh build.sh 20230204 wotlk db
 
 3. you can change the image_name_prefix in build.sh
 
+### 3. images
++ base4cmangos
+  - without-maps
+  - with-classic-maps
+  - with-tbc-maps
+  - with-wotlk-maps(lack)
++ classic
+  - cmangos-db-classic
+  - cmangos-with-maps-classic
+  - cmangos-without-maps-classic
++ tbc
+  - cmangos-db-tbc
+  - cmangos-with-maps-tbc
+  - cmangos-without-maps-tbc
++ wotlk
+  - cmangos-db-wotlk
+  - cmangos-with-maps-wotlk(lack)
+  - cmangos-without-maps-wotlk
+
